@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ProductsModule } from './products/products.module';
 import { PriceHistoryModule } from './price-history/price-history.module';
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { PriceHistoryModule } from './price-history/price-history.module';
     }),
     ProductsModule,
     PriceHistoryModule,
+    SearchModule,
   ],
 })
 export class AppModule { }

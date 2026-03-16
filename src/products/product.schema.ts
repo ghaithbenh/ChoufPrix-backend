@@ -23,6 +23,9 @@ export class Product {
     @Prop()
     description: string;
 
+    @Prop()
+    category: string;
+
     @Prop({ default: Date.now })
     lastUpdated: Date;
 }

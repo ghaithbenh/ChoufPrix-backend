@@ -3,17 +3,20 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Product, ProductDocument } from './product.schema';
 import { QueryProductDto } from './dto/query-product.dto';
+import { SearchService } from '../search/search.service';
 
 @Injectable()
 export class ProductsService {
     constructor(
         @InjectModel(Product.name) private productModel: Model<ProductDocument>,
+        private readonly searchService: SearchService,
     ) { }
 
     async findAll(query: QueryProductDto) {
         const {
             store,
             search,
+            category,
             minPrice,
             maxPrice,
             page = 1,
@@ -26,14 +29,18 @@ export class ProductsService {
             filter.store = store;
         }
 
+        if (category) {
+            filter.category = category;
+        }
+
         if (search) {
             filter.name = { $regex: search, $options: 'i' };
         }
 
         if (minPrice !== undefined || maxPrice !== undefined) {
             filter.price = {};
-            if (minPrice !== undefined) filter.price.$gte = Number(minPrice);
-            if (maxPrice !== undefined) filter.price.$lte = Number(maxPrice);
+            if (minPrice !== undefined) filter.price.$gte = Number(minPrice) * 1000;
+            if (maxPrice !== undefined) filter.price.$lte = Number(maxPrice) * 1000;
         }
 
         const skip = (Number(page) - 1) * Number(limit);
@@ -53,6 +60,11 @@ export class ProductsService {
             totalPages: Math.ceil(total / Number(limit)),
         };
     }
+    async indexAllProducts() {
+        const products = await this.productModel.find().exec();
+        await this.searchService.indexAllProducts(products);
+        return { message: `Indexed ${products.length} products` };
+    }
 
     async findById(id: string) {
         return this.productModel.findById(id).exec();
@@ -61,4 +73,5 @@ export class ProductsService {
     async getStores(): Promise<string[]> {
         return this.productModel.distinct('store').exec();
     }
+
 }
