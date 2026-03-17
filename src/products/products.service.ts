@@ -39,8 +39,8 @@ export class ProductsService {
 
         if (minPrice !== undefined || maxPrice !== undefined) {
             filter.price = {};
-            if (minPrice !== undefined) filter.price.$gte = Number(minPrice) * 1000;
-            if (maxPrice !== undefined) filter.price.$lte = Number(maxPrice) * 1000;
+            if (minPrice !== undefined) filter.price.$gte = Number(minPrice);
+            if (maxPrice !== undefined) filter.price.$lte = Number(maxPrice);
         }
 
         const skip = (Number(page) - 1) * Number(limit);
