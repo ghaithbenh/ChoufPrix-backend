@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { SearchService } from '../search/search.service';
 import { QueryProductDto } from './dto/query-product.dto';
@@ -13,6 +13,23 @@ export class ProductsController {
     @Get('stores')
     getStores() {
         return this.productsService.getStores();
+    }
+
+    @Get('stats')
+    getStats() {
+        return this.productsService.getStats();
+    }
+
+    @Post('scraper-status')
+    updateScraperStatus(
+        @Body() body: { store: string; status: string; count?: number; message?: string },
+    ) {
+        return this.productsService.updateScraperStatus(
+            body.store,
+            body.status,
+            body.count,
+            body.message,
+        );
     }
 
     @Get('search')

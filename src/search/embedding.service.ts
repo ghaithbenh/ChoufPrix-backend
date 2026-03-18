@@ -10,7 +10,7 @@ export class EmbeddingService implements OnModuleInit {
             'feature-extraction',
             'Xenova/multilingual-e5-small'
         );
-        console.log('✅ Embedding model loaded');
+        console.log('Embedding model loaded');
     }
 
     async embed(text: string): Promise<number[]> {
