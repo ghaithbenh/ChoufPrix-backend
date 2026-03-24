@@ -5,7 +5,11 @@ import { ScraperStatus, ScraperStatusDocument } from './scraper-status.schema';
 import { QueryProductDto } from './dto/query-product.dto';
 import { SearchService } from '../search/search.service';
 import { EventsGateway } from '../events/events.gateway';
+import { CategoryMapperService } from '../search/category-mapper.service';
+import { TAXONOMY, mapCategory } from './taxonomy';
 import { Model } from 'mongoose';
+
+
 
 @Injectable()
 export class ProductsService {
@@ -14,6 +18,7 @@ export class ProductsService {
         @InjectModel(ScraperStatus.name) private scraperStatusModel: Model<ScraperStatusDocument>,
         private readonly searchService: SearchService,
         private readonly eventsGateway: EventsGateway,
+        private readonly categoryMapper: CategoryMapperService,
     ) {
         this.setupChangeStream();
     }
@@ -98,6 +103,8 @@ export class ProductsService {
             store,
             search,
             category,
+            parentCategory,
+            subcategory,
             minPrice,
             maxPrice,
             page = 1,
@@ -106,17 +113,11 @@ export class ProductsService {
 
         const filter: Record<string, any> = {};
 
-        if (store) {
-            filter.store = store;
-        }
-
-        if (category) {
-            filter.category = category;
-        }
-
-        if (search) {
-            filter.name = { $regex: search, $options: 'i' };
-        }
+        if (store) filter.store = store;
+        if (category) filter.category = category;
+        if (parentCategory) filter.parentCategory = parentCategory;
+        if (subcategory) filter.subcategory = subcategory;
+        if (search) filter.name = { $regex: search, $options: 'i' };
 
         if (minPrice !== undefined || maxPrice !== undefined) {
             filter.price = {};
@@ -147,12 +148,57 @@ export class ProductsService {
         return { message: `Indexed ${products.length} products` };
     }
 
+    async migrateDatabase() {
+        console.log('Starting one-time migration to two-level taxonomy with AI support...');
+        const products = await this.productModel.find().exec();
+        let updated = 0;
+
+        for (const p of products) {
+            // Priority 1: Keyword match (fast)
+            const { parent: kwParent, subcategory: kwSub } = mapCategory(p.category || '');
+            
+            let finalParent = kwParent;
+            let finalSub = kwSub;
+
+            // Priority 2: AI refinement if keyword match is "Divers" or "UNKNOWN"
+            if (finalParent === 'Électroménager & Autres' && finalSub === 'Divers') {
+                const mapped = await this.categoryMapper.map(p.name, p.category);
+                if (mapped.parent !== 'UNKNOWN') {
+                    finalParent = mapped.parent;
+                    finalSub = mapped.subcategory;
+                }
+            }
+
+            if (p.parentCategory !== finalParent || p.subcategory !== finalSub) {
+                p.parentCategory = finalParent;
+                p.subcategory = finalSub;
+                await p.save();
+                updated++;
+                if (updated % 50 === 0) console.log(`Updated ${updated} products...`);
+            }
+        }
+        console.log(`Migration complete. Updated ${updated} products.`);
+        return { message: `Migration complete. Updated ${updated} products.` };
+    }
+
     async findById(id: string) {
         return this.productModel.findById(id).exec();
     }
 
     async getStores(): Promise<string[]> {
         return this.productModel.distinct('store').exec();
+    }
+
+    async getCategories(): Promise<string[]> {
+        return this.productModel.distinct('category').exec();
+    }
+
+    getTaxonomy(): Record<string, string[]> {
+        return TAXONOMY;
+    }
+
+    getSubcategories(parent: string): string[] {
+        return TAXONOMY[parent] ?? [];
     }
 
 }

@@ -15,6 +15,11 @@ export class ProductsController {
         return this.productsService.getStores();
     }
 
+    @Get('categories')
+    getCategories() {
+        return this.productsService.getCategories();
+    }
+
     @Get('stats')
     getStats() {
         return this.productsService.getStats();
@@ -37,17 +42,35 @@ export class ProductsController {
         @Query('q') q: string,
         @Query('minPrice') minPrice?: number,
         @Query('maxPrice') maxPrice?: number,
+        @Query('category') category?: string,
+        @Query('parentCategory') parentCategory?: string,
+        @Query('subcategory') subcategory?: string,
     ) {
-        return this.searchService.searchProducts(q, minPrice, maxPrice);
+        return this.searchService.searchProducts(q, minPrice, maxPrice, category, parentCategory, subcategory);
     }
 
     @Get()
     findAll(@Query() query: QueryProductDto) {
         return this.productsService.findAll(query);
     }
+    @Get('taxonomy')
+    getTaxonomy() {
+        return this.productsService.getTaxonomy();
+    }
+
+    @Get('categories/:parent')
+    getSubcategories(@Param('parent') parent: string) {
+        return this.productsService.getSubcategories(parent);
+    }
+
     @Get('index-all')
     indexAll() {
         return this.productsService.indexAllProducts();
+    }
+
+    @Get('migrate-now')
+    migrate() {
+        return this.productsService.migrateDatabase();
     }
 
     @Get(':id')

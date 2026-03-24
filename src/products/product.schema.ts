@@ -23,8 +23,14 @@ export class Product {
     @Prop()
     description: string;
 
-    @Prop()
+    @Prop({ default: 'Other' })
     category: string;
+
+    @Prop({ default: 'Électroménager & Autres' })
+    parentCategory: string;
+
+    @Prop({ default: 'Divers' })
+    subcategory: string;
 
     @Prop({ default: Date.now })
     lastUpdated: Date;

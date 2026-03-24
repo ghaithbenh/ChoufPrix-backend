@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ElasticsearchService } from '@nestjs/elasticsearch';
 import { EmbeddingService } from './embedding.service';
 import { QueryNormalizerService } from './query-normalizer.service';
+import { CategoryMapperService } from './category-mapper.service';
 
 @Injectable()
 export class SearchService {
@@ -9,12 +10,24 @@ export class SearchService {
         private readonly elasticSearch: ElasticsearchService,
         private readonly embeddingService: EmbeddingService,
         private readonly queryNormalizerService: QueryNormalizerService,
+        private readonly categoryMapper: CategoryMapperService,
     ) { }
 
     async indexProduct(product: any) {
         const embedding = await this.embeddingService.embed(
             `${product.name} ${product.description || ''}`
         );
+
+        // AI Categorization if missing or UNKNOWN
+        let parent = product.parentCategory;
+        let sub = product.subcategory;
+        if (!parent || parent === 'Électroménager & Autres' || parent === 'UNKNOWN') {
+            const mapped = await this.categoryMapper.map(product.name, product.category);
+            if (mapped.parent !== 'UNKNOWN') {
+                parent = mapped.parent;
+                sub = mapped.subcategory;
+            }
+        }
 
         await this.elasticSearch.index({
             index: 'products',
@@ -23,6 +36,9 @@ export class SearchService {
                 name: product.name,
                 price: product.price,
                 store: product.store,
+                category: product.category,
+                parentCategory: parent,
+                subcategory: sub,
                 description: product.description,
                 url: product.url,
                 image: product.image,
@@ -39,6 +55,17 @@ export class SearchService {
                 `${product.name} ${product.description || ''}`
             );
 
+            // AI Categorization if missing or UNKNOWN
+            let parent = product.parentCategory;
+            let sub = product.subcategory;
+            if (!parent || parent === 'Électroménager & Autres' || parent === 'UNKNOWN') {
+                const mapped = await this.categoryMapper.map(product.name, product.category);
+                if (mapped.parent !== 'UNKNOWN') {
+                    parent = mapped.parent;
+                    sub = mapped.subcategory;
+                }
+            }
+
             await this.elasticSearch.bulk({
                 operations: [
                     { index: { _index: 'products', _id: product._id.toString() } },
@@ -46,6 +73,9 @@ export class SearchService {
                         name: product.name,
                         price: product.price,
                         store: product.store,
+                        category: product.category,
+                        parentCategory: parent,
+                        subcategory: sub,
                         description: product.description,
                         url: product.url,
                         image: product.image,
@@ -58,7 +88,7 @@ export class SearchService {
         console.log('Indexing complete!');
     }
 
-    async searchProducts(query: string, minPrice?: number, maxPrice?: number) {
+    async searchProducts(query: string, minPrice?: number, maxPrice?: number, category?: string, parentCategory?: string, subcategory?: string) {
         // Step 1: Normalize with Gemini
         const normalized = await this.queryNormalizerService.normalize(query);
         console.log(`Original: "${query}"`);
@@ -77,6 +107,18 @@ export class SearchService {
                     }
                 }
             });
+        }
+
+        if (category) {
+            filter.push({ term: { category: category } });
+        }
+
+        if (parentCategory) {
+            filter.push({ term: { parentCategory: parentCategory } });
+        }
+
+        if (subcategory) {
+            filter.push({ term: { subcategory: subcategory } });
         }
 
         // Step 2: Embed the normalized query
