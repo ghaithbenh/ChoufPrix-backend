@@ -5,6 +5,7 @@ import { ProductsModule } from './products/products.module';
 import { PriceHistoryModule } from './price-history/price-history.module';
 import { SearchModule } from './search/search.module';
 import { EventsModule } from './events/events.module';
+import { ChatbotModule } from './chatbot/chatbot.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { EventsModule } from './events/events.module';
     PriceHistoryModule,
     SearchModule,
     EventsModule,
+    ChatbotModule,
   ],
 })
 export class AppModule { }
