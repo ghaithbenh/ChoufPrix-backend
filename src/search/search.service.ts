@@ -47,6 +47,19 @@ export class SearchService {
         });
     }
 
+    async deleteProduct(id: string) {
+        try {
+            await this.elasticSearch.delete({
+                index: 'products',
+                id: id,
+            });
+        } catch (error) {
+            // Might already be deleted or not indexed
+            console.warn('Search index deletion failed or document not found:', id);
+        }
+    }
+
+
     async indexAllProducts(products: any[]) {
         console.log(`Indexing ${products.length} products with embeddings...`);
 
@@ -88,13 +101,29 @@ export class SearchService {
         console.log('Indexing complete!');
     }
 
-    async searchProducts(query: string, minPrice?: number, maxPrice?: number, category?: string, parentCategory?: string, subcategory?: string) {
+    async searchProducts(query: string, minPrice?: number, maxPrice?: number, category?: string, parentCategory?: string, subcategory?: string, source: string = 'scraped') {
         // Step 1: Normalize with Gemini
         const normalized = await this.queryNormalizerService.normalize(query);
         console.log(`Original: "${query}"`);
         console.log(`Normalized:`, normalized);
 
         const filter: any[] = [];
+        
+        // Default to scraped products for main search, or explicit source
+        if (!source || source === 'scraped') {
+            filter.push({
+                bool: {
+                    should: [
+                        { term: { source: 'scraped' } },
+                        { bool: { must_not: { exists: { field: 'source' } } } }
+                    ],
+                    minimum_should_match: 1
+                }
+            });
+        } else {
+            filter.push({ term: { source: source } });
+        }
+
         const min = minPrice !== undefined ? Number(minPrice) : undefined;
         const max = maxPrice !== undefined ? Number(maxPrice) : undefined;
 

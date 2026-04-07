@@ -107,11 +107,20 @@ export class ProductsService {
             subcategory,
             minPrice,
             maxPrice,
+            source,
             page = 1,
             limit = 20,
         } = query;
 
         const filter: Record<string, any> = {};
+
+        // Default to scraped products to separate official stores from user marketplace
+        // Also include products where source is not yet defined
+        if (!source || source === 'scraped') {
+            filter.source = { $in: ['scraped', null, undefined] };
+        } else {
+            filter.source = source;
+        }
 
         if (store) filter.store = store;
         if (category) filter.category = category;
@@ -169,9 +178,10 @@ export class ProductsService {
                 }
             }
 
-            if (p.parentCategory !== finalParent || p.subcategory !== finalSub) {
+            if (p.parentCategory !== finalParent || p.subcategory !== finalSub || !p.source) {
                 p.parentCategory = finalParent;
                 p.subcategory = finalSub;
+                if (!p.source) p.source = 'scraped';
                 await p.save();
                 updated++;
                 if (updated % 50 === 0) console.log(`Updated ${updated} products...`);
@@ -179,6 +189,50 @@ export class ProductsService {
         }
         console.log(`Migration complete. Updated ${updated} products.`);
         return { message: `Migration complete. Updated ${updated} products.` };
+    }
+
+    async createManualProduct(data: any, clerkUserId: string) {
+        const product = await this.productModel.create({
+            ...data,
+            clerkUserId,
+            source: 'user',
+            lastUpdated: new Date()
+        });
+        
+        // Index in Elasticsearch
+        try {
+            await this.searchService.indexProduct(product);
+        } catch (error) {
+            console.error('Failed to index manual product:', error);
+        }
+        
+        return product;
+    }
+
+    async findUserProducts(clerkUserId: string) {
+        return this.productModel
+            .find({ clerkUserId, source: 'user' })
+            .sort({ lastUpdated: -1 })
+            .exec();
+    }
+
+    async deleteManualProduct(id: string, clerkUserId: string) {
+        const product = await this.productModel.findOne({ _id: id, clerkUserId, source: 'user' });
+        if (!product) {
+            throw new Error('Product not found or unauthorized');
+        }
+
+        // Remove from DB
+        await this.productModel.deleteOne({ _id: id });
+
+        // Remove from Elasticsearch
+        try {
+            await this.searchService.deleteProduct(id);
+        } catch (error) {
+            console.error('Failed to remove product from index:', error);
+        }
+
+        return { success: true };
     }
 
     async findById(id: string) {
@@ -200,5 +254,4 @@ export class ProductsService {
     getSubcategories(parent: string): string[] {
         return TAXONOMY[parent] ?? [];
     }
-
 }

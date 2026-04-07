@@ -32,6 +32,12 @@ export class Product {
     @Prop({ default: 'Divers' })
     subcategory: string;
 
+    @Prop({ index: true })
+    clerkUserId: string;
+
+    @Prop({ default: 'scraped', index: true })
+    source: string;
+
     @Prop({ default: Date.now })
     lastUpdated: Date;
 }

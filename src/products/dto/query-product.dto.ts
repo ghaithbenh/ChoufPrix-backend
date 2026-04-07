@@ -6,6 +6,7 @@ export class QueryProductDto {
     subcategory?: string;
     minPrice?: number;
     maxPrice?: number;
+    source?: string;
     page?: number;
     limit?: number;
 }

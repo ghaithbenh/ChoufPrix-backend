@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Delete, UseGuards, Req, HttpCode, HttpStatus } from '@nestjs/common';
+import { ClerkAuthGuard } from '../tracked-items/clerk-auth.guard';
 import { ProductsService } from './products.service';
 import { SearchService } from '../search/search.service';
 import { QueryProductDto } from './dto/query-product.dto';
@@ -45,8 +46,9 @@ export class ProductsController {
         @Query('category') category?: string,
         @Query('parentCategory') parentCategory?: string,
         @Query('subcategory') subcategory?: string,
+        @Query('source') source?: string,
     ) {
-        return this.searchService.searchProducts(q, minPrice, maxPrice, category, parentCategory, subcategory);
+        return this.searchService.searchProducts(q, minPrice, maxPrice, category, parentCategory, subcategory, source);
     }
 
     @Get()
@@ -76,6 +78,25 @@ export class ProductsController {
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.productsService.findById(id);
+    }
+
+    @Post()
+    @UseGuards(ClerkAuthGuard)
+    @HttpCode(HttpStatus.CREATED)
+    create(@Body() body: any, @Req() req: any) {
+        return this.productsService.createManualProduct(body, req.clerkUserId);
+    }
+
+    @Get('user/all')
+    @UseGuards(ClerkAuthGuard)
+    getUserProducts(@Req() req: any) {
+        return this.productsService.findUserProducts(req.clerkUserId);
+    }
+
+    @Delete(':id')
+    @UseGuards(ClerkAuthGuard)
+    delete(@Param('id') id: string, @Req() req: any) {
+        return this.productsService.deleteManualProduct(id, req.clerkUserId);
     }
 
 }
