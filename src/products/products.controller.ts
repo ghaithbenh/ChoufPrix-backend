@@ -3,6 +3,7 @@ import { ClerkAuthGuard } from '../tracked-items/clerk-auth.guard';
 import { ProductsService } from './products.service';
 import { SearchService } from '../search/search.service';
 import { QueryProductDto } from './dto/query-product.dto';
+import { DashboardGuard } from './dashboard.guard';
 
 @Controller('products')
 export class ProductsController {
@@ -22,8 +23,10 @@ export class ProductsController {
     }
 
     @Get('stats')
-    getStats() {
-        return this.productsService.getStats();
+    @UseGuards(DashboardGuard)
+    getStats(@Req() req: any) {
+        const store = req.userRole === 'sub-admin' ? req.assignedStore : undefined;
+        return this.productsService.getStats(store);
     }
 
     @Post('scraper-status')

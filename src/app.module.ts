@@ -7,6 +7,7 @@ import { SearchModule } from './search/search.module';
 import { EventsModule } from './events/events.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
 import { TrackedItemsModule } from './tracked-items/tracked-items.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { TrackedItemsModule } from './tracked-items/tracked-items.module';
     EventsModule,
     ChatbotModule,
     TrackedItemsModule,
+    UsersModule,
   ],
 })
 export class AppModule { }

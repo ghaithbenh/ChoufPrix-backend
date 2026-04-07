@@ -41,14 +41,19 @@ export class ProductsService {
         }
     }
 
-    async getStats() {
-        const totalProducts = await this.productModel.countDocuments();
+    async getStats(store?: string) {
+        const productFilter: any = store ? { store } : {};
+        const scraperFilter: any = store ? { store } : {};
+
+        const totalProducts = await this.productModel.countDocuments(productFilter);
 
         const byStore = await this.productModel.aggregate([
+            { $match: productFilter },
             { $group: { _id: '$store', count: { $sum: 1 } } }
         ]);
 
         const priceHistoryStats = await this.productModel.aggregate([
+            { $match: productFilter },
             {
                 $bucket: {
                     groupBy: '$price',
@@ -62,14 +67,15 @@ export class ProductsService {
         ]);
 
         const recentlyUpdated = await this.productModel
-            .find()
+            .find(productFilter)
             .sort({ lastUpdated: -1 })
             .limit(10)
             .exec();
 
-        const scraperStatus = await this.scraperStatusModel.find().exec();
+        const scraperStatus = await this.scraperStatusModel.find(scraperFilter).exec();
 
         const addedToday = await this.productModel.countDocuments({
+            ...productFilter,
             lastUpdated: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
         });
 
@@ -81,7 +87,7 @@ export class ProductsService {
             recentlyUpdated,
             scraperStatus,
             addedToday,
-            lastScrapeTime: scraperStatus.length > 0 ? Math.max(...scraperStatus.map(s => s.lastScrapeTime.getTime())) : null
+            lastScrapeTime: scraperStatus.length > 0 ? Math.max(...scraperStatus.map(s => s.lastScrapeTime?.getTime() || 0)) : null
         };
     }
 
