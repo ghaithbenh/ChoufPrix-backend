@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@clerk/clerk-sdk-node": "^4.13.23",
     "@elastic/elasticsearch": "^8.19.1",
     "@google/generative-ai": "^0.24.1",
     "@nestjs/bull": "^11.0.4",

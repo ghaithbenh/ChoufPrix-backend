@@ -6,6 +6,7 @@ import { PriceHistoryModule } from './price-history/price-history.module';
 import { SearchModule } from './search/search.module';
 import { EventsModule } from './events/events.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
+import { TrackedItemsModule } from './tracked-items/tracked-items.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ChatbotModule } from './chatbot/chatbot.module';
     SearchModule,
     EventsModule,
     ChatbotModule,
+    TrackedItemsModule,
   ],
 })
 export class AppModule { }
